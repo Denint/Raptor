@@ -1,0 +1,33 @@
+services:
+  raptor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - LOG_FORMAT=json
+      - FEATURE_INCR_COMMAND=true
+      - MAX_MEMORY_BYTES=1073741824  # 1GB
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - raptor-network
+    volumes:
+      - ./snapshots:/app/snapshots
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+
+networks:
+  raptor-network:
+    driver: bridge

@@ -1,0 +1,191 @@
+---
+name: Save Benchmark Results
+
+on:
+  workflow_call:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  save-results:
+    name: Save Benchmark Results
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create benchmark_results directory
+        run: mkdir -p benchmark_results
+
+      - name: Download unit benchmark results
+        uses: actions/download-artifact@v4
+        with:
+          name: unit-benchmark-results
+          path: benchmark_results/unit/
+
+      - name: Download command benchmark results
+        uses: actions/download-artifact@v4
+        with:
+          name: commands-set-results
+          path: benchmark_results/commands/set/
+
+      - name: Download get command results
+        uses: actions/download-artifact@v4
+        with:
+          name: commands-get-results
+          path: benchmark_results/commands/get/
+
+      - name: Download mset command results
+        uses: actions/download-artifact@v4
+        with:
+          name: commands-mset-results
+          path: benchmark_results/commands/mset/
+
+      - name: Download mget command results
+        uses: actions/download-artifact@v4
+        with:
+          name: commands-mget-results
+          path: benchmark_results/commands/mget/
+
+
+      - name: Download allocator system results
+        uses: actions/download-artifact@v4
+        with:
+          name: allocator-system-results
+          path: benchmark_results/allocators/system/
+
+
+      - name: Download advanced realistic benchmark results
+        uses: actions/download-artifact@v4
+        with:
+          name: advanced-realistic-benchmark-results
+          path: benchmark_results/advanced/realistic/
+
+      - name: Download advanced concurrency benchmark results
+        uses: actions/download-artifact@v4
+        with:
+          name: advanced-concurrency-benchmark-results
+          path: benchmark_results/advanced/concurrency/
+
+      - name: Download concurrent reads results
+        uses: actions/download-artifact@v4
+        with:
+          name: concurrency-concurrent_reads-results
+          path: benchmark_results/concurrency/concurrent_reads/
+
+      - name: Download concurrent writes results
+        uses: actions/download-artifact@v4
+        with:
+          name: concurrency-concurrent_writes-results
+          path: benchmark_results/concurrency/concurrent_writes/
+
+      - name: Download concurrent counters results
+        uses: actions/download-artifact@v4
+        with:
+          name: concurrency-concurrent_counters-results
+          path: benchmark_results/concurrency/concurrent_counters/
+
+      - name: Download contention results
+        uses: actions/download-artifact@v4
+        with:
+          name: concurrency-contention-results
+          path: benchmark_results/concurrency/contention/
+
+      - name: Download transaction patterns results
+        uses: actions/download-artifact@v4
+        with:
+          name: concurrency-transaction_patterns-results
+          path: benchmark_results/concurrency/transaction_patterns/
+
+      - name: Download large value operations results
+        uses: actions/download-artifact@v4
+        with:
+          name: realistic-large_value_operations-results
+          path: benchmark_results/realistic/large_value_operations/
+
+      - name: Download concurrent hot keys results
+        uses: actions/download-artifact@v4
+        with:
+          name: realistic-concurrent_hot_keys-results
+          path: benchmark_results/realistic/concurrent_hot_keys/
+
+      - name: Download session storage results
+        uses: actions/download-artifact@v4
+        with:
+          name: realistic-session_storage-results
+          path: benchmark_results/realistic/session_storage/
+
+      - name: Download cache pattern results
+        uses: actions/download-artifact@v4
+        with:
+          name: realistic-cache_pattern-results
+          path: benchmark_results/realistic/cache_pattern/
+
+      - name: Download hash hset results
+        uses: actions/download-artifact@v4
+        with:
+          name: hash-hash_hset-results
+          path: benchmark_results/hash/hset/
+
+      - name: Download hash hget results
+        uses: actions/download-artifact@v4
+        with:
+          name: hash-hash_hget-results
+          path: benchmark_results/hash/hget/
+
+      - name: Download hash operations results
+        uses: actions/download-artifact@v4
+        with:
+          name: hash-hash_operations-results
+          path: benchmark_results/hash/hash_operations/
+
+      - name: Download list operations results
+        uses: actions/download-artifact@v4
+        with:
+          name: list-operations-results
+          path: benchmark_results/list/operations/
+
+      - name: Download set operations results
+        uses: actions/download-artifact@v4
+        with:
+          name: set-operations-results
+          path: benchmark_results/set/operations/
+
+      - name: Download sorted set operations results
+        uses: actions/download-artifact@v4
+        with:
+          name: sorted-set-operations-results
+          path: benchmark_results/sorted_set/operations/
+
+      - name: Download array operations results
+        uses: actions/download-artifact@v4
+        with:
+          name: array-operations-results
+          path: benchmark_results/array/operations/
+
+      - name: Download mixed workload results
+        uses: actions/download-artifact@v4
+        with:
+          name: complex-scenarios-mixed_workload-results
+          path: benchmark_results/complex_scenarios/mixed_workload/
+
+      - name: Download complex queries results
+        uses: actions/download-artifact@v4
+        with:
+          name: complex-scenarios-complex_queries-results
+          path: benchmark_results/complex_scenarios/complex_queries/
+
+      - name: Copy unified index.html
+        run: |
+          cp benches/benchmark-index.html benchmark_results/index.html
+          sed -i "s|<!-- GENERATED_DATE -->|$(date -u +"%Y-%m-%d %H:%M:%S UTC")|g" benchmark_results/index.html
+          sed -i "s|<!-- COMMIT_SHA -->|${{ github.sha }}|g" benchmark_results/index.html
+
+
+      - name: Upload complete benchmark results archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: 1a-benchmark-results-complete
+          path: benchmark_results/
+          retention-days: 30

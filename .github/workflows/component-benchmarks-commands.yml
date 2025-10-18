@@ -1,0 +1,236 @@
+---
+name: Command Benchmarks
+
+on:
+  workflow_call:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  benchmark-commands:
+    name: Commands Benchmarks (${{ matrix.command }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        command: [set, get, mset, mget]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-commands-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-commands-
+
+      - name: Run ${{ matrix.command }} command benchmark
+        run: cargo bench --bench commands_${{ matrix.command }}_benchmark
+
+      - name: Store ${{ matrix.command }} command results
+        uses: actions/upload-artifact@v4
+        with:
+          name: commands-${{ matrix.command }}-results
+          path: target/criterion/
+          retention-days: 30
+          overwrite: true
+
+  benchmark-hash:
+    name: Hash Benchmarks (${{ matrix.hash_benchmark }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        hash_benchmark: [hash_hset, hash_hget, hash_operations]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-hash-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-hash-
+
+      - name: Run ${{ matrix.hash_benchmark }} benchmark
+        run: cargo bench --bench ${{ matrix.hash_benchmark }}_benchmark
+
+      - name: Store ${{ matrix.hash_benchmark }} results
+        uses: actions/upload-artifact@v4
+        with:
+          name: hash-${{ matrix.hash_benchmark }}-results
+          path: target/criterion/
+          retention-days: 30
+          overwrite: true
+
+  benchmark-list:
+    name: List Benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-list-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-list-
+
+      - name: Run list operations benchmark
+        run: cargo bench --bench list_operations_benchmark
+
+      - name: Store list results
+        uses: actions/upload-artifact@v4
+        with:
+          name: list-operations-results
+          path: target/criterion/
+          retention-days: 30
+          overwrite: true
+
+  benchmark-set:
+    name: Set Benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-set-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-set-
+
+      - name: Run set operations benchmark
+        run: cargo bench --bench set_operations_benchmark
+
+      - name: Store set results
+        uses: actions/upload-artifact@v4
+        with:
+          name: set-operations-results
+          path: target/criterion/
+          retention-days: 30
+          overwrite: true
+
+  benchmark-sorted-set:
+    name: SortedSet Benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-sorted-set-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-sorted-set-
+
+      - name: Run sorted set operations benchmark
+        run: cargo bench --bench sorted_set_operations_benchmark
+
+      - name: Store sorted set results
+        uses: actions/upload-artifact@v4
+        with:
+          name: sorted-set-operations-results
+          path: target/criterion/
+          retention-days: 30
+          overwrite: true
+
+  benchmark-array:
+    name: Array Benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-array-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-array-
+
+      - name: Run array operations benchmark
+        run: cargo bench --bench array_operations_benchmark
+
+      - name: Store array results
+        uses: actions/upload-artifact@v4
+        with:
+          name: array-operations-results
+          path: target/criterion/
+          retention-days: 30
+          overwrite: true
+
+  benchmark-complex-scenarios:
+    name: Complex Scenarios Benchmarks (${{ matrix.scenario }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        scenario: [mixed_workload, complex_queries]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-complex-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-complex-
+
+      - name: Run ${{ matrix.scenario }} benchmark
+        run: cargo bench --bench ${{ matrix.scenario }}_benchmark
+
+      - name: Store ${{ matrix.scenario }} results
+        uses: actions/upload-artifact@v4
+        with:
+          name: complex-scenarios-${{ matrix.scenario }}-results
+          path: target/criterion/
+          retention-days: 30
+          overwrite: true

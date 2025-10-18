@@ -1,0 +1,411 @@
+---
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., v0.1.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  build-and-compress:
+    name: Build and Compress Binary
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-release-
+
+      - name: Build release binary
+        run: cargo build --release --bin raptor
+
+      - name: Install UPX
+        run: sudo apt-get update && sudo apt-get install -y upx
+
+      - name: Compress binary with UPX
+        run: upx --best --lzma target/release/raptor
+
+      - name: Get binary info
+        id: binary-info
+        run: |
+          echo "size=$(stat -c%s target/release/raptor)" >> $GITHUB_OUTPUT
+          echo "compressed_size=$(stat -c%s target/release/raptor)" >> $GITHUB_OUTPUT
+
+      - name: Upload compressed binary as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: compressed-binary
+          path: target/release/raptor
+          retention-days: 30
+
+      - name: Create checksums
+        run: |
+          cd target/release
+          sha256sum raptor > raptor.sha256
+          md5sum raptor > raptor.md5
+
+      - name: Upload checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: checksums
+          path: |
+            target/release/raptor.sha256
+            target/release/raptor.md5
+          retention-days: 30
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: build-and-compress
+    steps:
+      - name: Download compressed binary
+        uses: actions/download-artifact@v4
+        with:
+          name: compressed-binary
+          path: ./artifacts/
+
+      - name: Download checksums
+        uses: actions/download-artifact@v4
+        with:
+          name: checksums
+          path: ./checksums/
+
+      - name: Get tag info
+        id: tag-info
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ./artifacts/raptor
+            ./checksums/raptor.sha256
+            ./checksums/raptor.md5
+          tag_name: ${{ steps.tag-info.outputs.tag }}
+          name: Release ${{ steps.tag-info.outputs.tag }}
+          draft: false
+          prerelease: ${{ contains(steps.tag-info.outputs.tag, 'alpha') || contains(steps.tag-info.outputs.tag, 'beta') || contains(steps.tag-info.outputs.tag, 'rc') }}
+          generate_release_notes: true
+          body: |
+
+            - **raptor** - Compressed binary (UPX)
+            - **raptor.sha256** - SHA256 checksum
+            - **raptor.md5** - MD5 checksum
+
+            ```bash
+            wget https://github.com/${{ github.repository }}/releases/download/${{ steps.tag-info.outputs.tag }}/raptor
+
+            sha256sum -c raptor.sha256
+
+            chmod +x raptor
+            ./raptor
+            ```
+
+            ```bash
+            docker run --rm -p 3000:3000 ghcr.io/${{ github.repository }}/raptor:${{ steps.tag-info.outputs.tag }}
+            ```
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: build-and-compress
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download compressed binary
+        uses: actions/download-artifact@v4
+        with:
+          name: compressed-binary
+          path: ./target/release/
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/denint/raptor
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BINARY_PATH=target/release/raptor
+
+  notify:
+    name: Notify Release
+    runs-on: ubuntu-latest
+    needs: [create-release, build-docker]
+    if: always()
+    steps:
+      - name: Release Summary
+        run: |
+          echo "## 🎉 Release Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| ✅ Binary Build | ${{ needs.build-and-compress.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "| ✅ GitHub Release | ${{ needs.create-release.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "| ✅ Docker Image | ${{ needs.build-docker.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Release Assets:" >> $GITHUB_STEP_SUMMARY
+          echo "- Compressed binary with UPX" >> $GITHUB_STEP_SUMMARY
+          echo "- SHA256 and MD5 checksums" >> $GITHUB_STEP_SUMMARY
+          echo "- Multi-platform Docker image" >> $GITHUB_STEP_SUMMARY
+
+---
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., v0.1.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  build-and-compress:
+    name: Build and Compress Binary
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-release-
+
+      - name: Build release binary
+        run: cargo build --release --bin raptor
+
+      - name: Install UPX
+        run: sudo apt-get update && sudo apt-get install -y upx
+
+      - name: Compress binary with UPX
+        run: upx --best --lzma target/release/raptor
+
+      - name: Get binary info
+        id: binary-info
+        run: |
+          echo "size=$(stat -c%s target/release/raptor)" >> $GITHUB_OUTPUT
+          echo "compressed_size=$(stat -c%s target/release/raptor)" >> $GITHUB_OUTPUT
+
+      - name: Upload compressed binary as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: compressed-binary
+          path: target/release/raptor
+          retention-days: 30
+
+      - name: Create checksums
+        run: |
+          cd target/release
+          sha256sum raptor > raptor.sha256
+          md5sum raptor > raptor.md5
+
+      - name: Upload checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: checksums
+          path: |
+            target/release/raptor.sha256
+            target/release/raptor.md5
+          retention-days: 30
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: build-and-compress
+    steps:
+      - name: Download compressed binary
+        uses: actions/download-artifact@v4
+        with:
+          name: compressed-binary
+          path: ./artifacts/
+
+      - name: Download checksums
+        uses: actions/download-artifact@v4
+        with:
+          name: checksums
+          path: ./checksums/
+
+      - name: Get tag info
+        id: tag-info
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ./artifacts/raptor
+            ./checksums/raptor.sha256
+            ./checksums/raptor.md5
+          tag_name: ${{ steps.tag-info.outputs.tag }}
+          name: Release ${{ steps.tag-info.outputs.tag }}
+          draft: false
+          prerelease: ${{ contains(steps.tag-info.outputs.tag, 'alpha') || contains(steps.tag-info.outputs.tag, 'beta') || contains(steps.tag-info.outputs.tag, 'rc') }}
+          generate_release_notes: true
+          body: |
+
+            - **raptor** - Compressed binary (UPX)
+            - **raptor.sha256** - SHA256 checksum
+            - **raptor.md5** - MD5 checksum
+
+            ```bash
+            wget https://github.com/${{ github.repository }}/releases/download/${{ steps.tag-info.outputs.tag }}/raptor
+
+            sha256sum -c raptor.sha256
+
+            chmod +x raptor
+            ./raptor
+            ```
+
+            ```bash
+            docker run --rm -p 3000:3000 ghcr.io/${{ github.repository }}/raptor:${{ steps.tag-info.outputs.tag }}
+            ```
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: build-and-compress
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download compressed binary
+        uses: actions/download-artifact@v4
+        with:
+          name: compressed-binary
+          path: ./target/release/
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/denint/raptor
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BINARY_PATH=target/release/raptor
+
+  notify:
+    name: Notify Release
+    runs-on: ubuntu-latest
+    needs: [create-release, build-docker]
+    if: always()
+    steps:
+      - name: Release Summary
+        run: |
+          echo "## 🎉 Release Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| ✅ Binary Build | ${{ needs.build-and-compress.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "| ✅ GitHub Release | ${{ needs.create-release.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "| ✅ Docker Image | ${{ needs.build-docker.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Release Assets:" >> $GITHUB_STEP_SUMMARY
+          echo "- Compressed binary with UPX" >> $GITHUB_STEP_SUMMARY
+          echo "- SHA256 and MD5 checksums" >> $GITHUB_STEP_SUMMARY
+          echo "- Multi-platform Docker image" >> $GITHUB_STEP_SUMMARY

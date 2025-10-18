@@ -1,0 +1,132 @@
+[package]
+name = "raptor-benches"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+raptor = { path = "../raptor" }
+criterion = "0.5.1"
+tokio = { version = "1.37.0", features = ["full"] }
+futures = "0.3"
+rand = { version = "0.8", features = ["std_rng"] }
+fastrand = "2.0"
+
+[[bench]]
+name = "allocator_benchmark"
+path = "src/benches/allocator_benchmark.rs"
+harness = false
+
+[[bench]]
+name = "commands_set_benchmark"
+path = "src/benches/commands/set_benchmark.rs"
+harness = false
+
+[[bench]]
+name = "commands_get_benchmark"
+path = "src/benches/commands/get_benchmark.rs"
+harness = false
+
+[[bench]]
+name = "commands_mset_benchmark"
+path = "src/benches/commands/mset_benchmark.rs"
+harness = false
+
+[[bench]]
+name = "commands_mget_benchmark"
+path = "src/benches/commands/mget_benchmark.rs"
+harness = false
+
+[[bench]]
+name = "concurrent_reads_benchmark"
+path = "src/benches/concurrency/concurrent_reads_benchmark.rs"
+harness = false
+
+[[bench]]
+name = "concurrent_writes_benchmark"
+path = "src/benches/concurrency/concurrent_writes_benchmark.rs"
+harness = false
+
+[[bench]]
+name = "concurrent_counters_benchmark"
+path = "src/benches/concurrency/concurrent_counters_benchmark.rs"
+harness = false
+
+[[bench]]
+name = "contention_benchmark"
+path = "src/benches/concurrency/contention_benchmark.rs"
+harness = false
+
+[[bench]]
+name = "transaction_patterns_benchmark"
+path = "src/benches/concurrency/transaction_patterns_benchmark.rs"
+harness = false
+
+[[bench]]
+name = "large_value_operations_benchmark"
+path = "src/benches/realistic/large_value_operations_benchmark.rs"
+harness = false
+
+[[bench]]
+name = "concurrent_hot_keys_benchmark"
+path = "src/benches/realistic/concurrent_hot_keys_benchmark.rs"
+harness = false
+
+[[bench]]
+name = "session_storage_benchmark"
+path = "src/benches/realistic/session_storage_benchmark.rs"
+harness = false
+
+[[bench]]
+name = "cache_pattern_benchmark"
+path = "src/benches/realistic/cache_pattern_benchmark.rs"
+harness = false
+
+[[bench]]
+name = "hash_hset_benchmark"
+path = "src/benches/hash/hset_benchmark.rs"
+harness = false
+
+[[bench]]
+name = "hash_hget_benchmark"
+path = "src/benches/hash/hget_benchmark.rs"
+harness = false
+
+[[bench]]
+name = "hash_operations_benchmark"
+path = "src/benches/hash/hash_operations_benchmark.rs"
+harness = false
+
+[[bench]]
+name = "list_operations_benchmark"
+path = "src/benches/list/list_operations_benchmark.rs"
+harness = false
+
+[[bench]]
+name = "set_operations_benchmark"
+path = "src/benches/set/set_operations_benchmark.rs"
+harness = false
+
+[[bench]]
+name = "sorted_set_operations_benchmark"
+path = "src/benches/sorted_set/sorted_set_operations_benchmark.rs"
+harness = false
+
+[[bench]]
+name = "array_operations_benchmark"
+path = "src/benches/array/array_operations_benchmark.rs"
+harness = false
+
+[[bench]]
+name = "mixed_workload_benchmark"
+path = "src/benches/complex_scenarios/mixed_workload_benchmark.rs"
+harness = false
+
+[[bench]]
+name = "complex_queries_benchmark"
+path = "src/benches/complex_scenarios/complex_queries_benchmark.rs"
+harness = false
+
+[lib]
+test = false
+doctest = false
