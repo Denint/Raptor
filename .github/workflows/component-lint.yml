@@ -1,0 +1,77 @@
+---
+name: Code Linting
+
+on:
+  workflow_call:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  lint-and-format:
+    name: Lint and Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Rust toolchain
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.rustup/toolchains
+            ~/.rustup/update-hashes
+            ~/.rustup/settings.toml
+          key: ${{ runner.os }}-rust-toolchain-${{
+            hashFiles('rust-toolchain.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-rust-toolchain-
+
+      - name: Apply formatting (cargo fmt)
+        run: cargo fmt --all
+
+      - name: Apply automatic fixes (cargo fix)
+        run: cargo fix --allow-dirty --allow-staged
+
+      - name: Apply clippy fixes
+        run: cargo clippy --fix --allow-dirty --allow-staged -- -D warnings
+
+      - name: Final formatting check
+        run: cargo fmt --all -- --check
+
+      - name: Commit all fixes
+        run: |
+          if [[ -n $(git status --porcelain) ]]; then
+            git config --local user.email "action@github.com"
+            git config --local user.name "GitHub Action"
+            git add .
+
+            git pull --rebase origin ${{ github.ref_name }} || {
+              echo "Rebase failed, trying merge..."
+              git pull origin ${{ github.ref_name }} || {
+                echo "Pull failed, forcing push..."
+                git push --force-with-lease
+                exit 0
+              }
+            }
+
+            git commit -m "🤖 Auto-fix: format, clippy, and fix applied"
+
+            if git push; then
+              echo "Successfully pushed changes"
+            else
+              echo "Normal push failed, trying force push..."
+              git push --force-with-lease || {
+                echo "Force push also failed!"
+                echo "Manual intervention required"
+                exit 1
+              }
+            fi
+          else
+            echo "No changes needed"
+          fi

@@ -1,0 +1,75 @@
+name: Workflow
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_full_benchmarks:
+        description: 'Run full benchmark suite (slower)'
+        required: false
+        default: false
+        type: boolean
+      run_audit:
+        description: 'Run security audit'
+        required: false
+        default: true
+        type: boolean
+      run_scenarios:
+        description: 'Run scenario benchmarks'
+        required: false
+        default: true
+        type: boolean
+      run_miri:
+        description: 'Run Miri memory safety checks'
+        required: false
+        default: true
+        type: boolean
+      miri_flags:
+        description: 'Additional Miri flags'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  lint:
+    uses: ./.github/workflows/component-lint.yml
+
+  tests:
+    uses: ./.github/workflows/component-tests.yml
+    needs: [lint]
+    with:
+      run_audit: ${{ inputs.run_audit || true }}
+
+  miri:
+    uses: ./.github/workflows/component-miri.yml
+    needs: [lint]
+    with:
+      run_miri: ${{ inputs.run_miri || true }}
+      miri_flags: ${{ inputs.miri_flags }}
+
+  commands:
+    uses: ./.github/workflows/component-benchmarks-commands.yml
+    needs: [tests, miri]
+
+  performance:
+    uses: ./.github/workflows/component-benchmarks-performance.yml
+    needs: [tests, miri]
+    with:
+      run_full_benchmarks: ${{ inputs.run_full_benchmarks || true }}
+
+  scenarios:
+    uses: ./.github/workflows/component-benchmarks-scenarios.yml
+    needs: [tests, miri]
+    with:
+      run_scenarios: ${{ inputs.run_scenarios || true }}
+
+  save-results:
+    uses: ./.github/workflows/component-save-results.yml
+    needs: [commands, performance, scenarios]

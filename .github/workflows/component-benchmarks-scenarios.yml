@@ -1,0 +1,115 @@
+---
+name: Scenario Benchmarks
+
+on:
+  workflow_call:
+    inputs:
+      run_scenarios:
+        description: 'Run scenario benchmarks'
+        type: boolean
+        default: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  benchmark-concurrency:
+    name: Concurrency Benchmarks (${{ matrix.benchmark_type }})
+    runs-on: ubuntu-latest
+    if: inputs.run_scenarios
+    strategy:
+      matrix:
+        benchmark_type:
+          - concurrent_reads
+          - concurrent_writes
+          - concurrent_counters
+          - contention
+          - transaction_patterns
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-concurrency-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-concurrency-
+
+      - name: Run ${{ matrix.benchmark_type }} benchmark
+        run: |
+          if [ "${{ matrix.benchmark_type }}" = "concurrent_reads" ]; then
+            cargo bench --bench concurrent_reads_benchmark
+          elif [ "${{ matrix.benchmark_type }}" = "concurrent_writes" ]; then
+            cargo bench --bench concurrent_writes_benchmark
+          elif [ "${{ matrix.benchmark_type }}" = "concurrent_counters" ]; then
+            cargo bench --bench concurrent_counters_benchmark
+          elif [ "${{ matrix.benchmark_type }}" = "contention" ]; then
+            cargo bench --bench contention_benchmark
+          elif [ "${{ matrix.benchmark_type }}" = "transaction_patterns" ]; then
+            cargo bench --bench transaction_patterns_benchmark
+          fi
+
+      - name: Store ${{ matrix.benchmark_type }} results
+        uses: actions/upload-artifact@v4
+        with:
+          name: concurrency-${{ matrix.benchmark_type }}-results
+          path: target/criterion/
+          retention-days: 30
+          overwrite: true
+
+  benchmark-realistic:
+    name: Realistic Benchmarks (${{ matrix.scenario }})
+    runs-on: ubuntu-latest
+    if: inputs.run_scenarios
+    strategy:
+      matrix:
+        scenario:
+          - large_value_operations
+          - concurrent_hot_keys
+          - session_storage
+          - cache_pattern
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-realistic-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-realistic-
+
+      - name: Run ${{ matrix.scenario }} benchmark
+        run: |
+          if [ "${{ matrix.scenario }}" = "large_value_operations" ]; then
+            cargo bench --bench large_value_operations_benchmark
+          elif [ "${{ matrix.scenario }}" = "concurrent_hot_keys" ]; then
+            cargo bench --bench concurrent_hot_keys_benchmark
+          elif [ "${{ matrix.scenario }}" = "session_storage" ]; then
+            cargo bench --bench session_storage_benchmark
+          elif [ "${{ matrix.scenario }}" = "cache_pattern" ]; then
+            cargo bench --bench cache_pattern_benchmark
+          fi
+
+      - name: Store ${{ matrix.scenario }} results
+        uses: actions/upload-artifact@v4
+        with:
+          name: realistic-${{ matrix.scenario }}-results
+          path: target/criterion/
+          retention-days: 30
+          overwrite: true
+

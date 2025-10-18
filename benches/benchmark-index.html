@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raptor Benchmark Results</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.15);
+        }
+
+        .card h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 8px;
+        }
+
+        .benchmark-list {
+            list-style: none;
+        }
+
+        .benchmark-list li {
+            margin-bottom: 8px;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #3498db;
+            transition: background 0.2s ease;
+        }
+
+        .benchmark-list li:hover {
+            background: #e9ecef;
+        }
+
+        .benchmark-list a {
+            color: #2c3e50;
+            text-decoration: none;
+            font-weight: 500;
+            display: block;
+        }
+
+        .benchmark-list a:hover {
+            color: #3498db;
+        }
+
+        .section-icon {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        .stats {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .stats h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-item {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #3498db;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Raptor Benchmark Results</h1>
+            <p>Comprehensive performance analysis of the Raptor in-memory database</p>
+            <p><strong>Generated:</strong> <!-- GENERATED_DATE --> | <strong>Commit:</strong> <!-- COMMIT_SHA --></p>
+        </div>
+
+        <div class="grid">
+            <!-- Commands Benchmarks -->
+            <div class="card">
+                <h3>⚡ Command Benchmarks</h3>
+                <p>Individual Redis-style command performance tests</p>
+                <ul class="benchmark-list">
+                    <li><a href="commands/set/report/index.html">📝 SET Command</a></li>
+                    <li><a href="commands/get/report/index.html">📖 GET Command</a></li>
+                    <li><a href="commands/mset/report/index.html">📚 MSET Command</a></li>
+                    <li><a href="commands/mget/report/index.html">📚 MGET Command</a></li>
+                </ul>
+            </div>
+
+            <!-- Hash Benchmarks -->
+            <div class="card">
+                <h3>📊 Hash Benchmarks</h3>
+                <p>Hash data structure operations performance</p>
+                <ul class="benchmark-list">
+                    <li><a href="hash/hset/report/index.html">🔑 HSET Operation</a></li>
+                    <li><a href="hash/hget/report/index.html">🔍 HGET Operation</a></li>
+                    <li><a href="hash/hash_operations/report/index.html">🔄 All Hash Operations</a></li>
+                </ul>
+            </div>
+
+            <!-- List Benchmarks -->
+            <div class="card">
+                <h3>📋 List Benchmarks</h3>
+                <p>List data structure operations performance</p>
+                <ul class="benchmark-list">
+                    <li><a href="list/list_operations/report/index.html">🔄 All List Operations</a></li>
+                </ul>
+            </div>
+
+            <!-- Set Benchmarks -->
+            <div class="card">
+                <h3>🎯 Set Benchmarks</h3>
+                <p>Set data structure operations performance</p>
+                <ul class="benchmark-list">
+                    <li><a href="set/set_operations/report/index.html">🔄 All Set Operations</a></li>
+                </ul>
+            </div>
+
+            <!-- SortedSet Benchmarks -->
+            <div class="card">
+                <h3>🏆 SortedSet Benchmarks</h3>
+                <p>Sorted set data structure operations performance</p>
+                <ul class="benchmark-list">
+                    <li><a href="sorted_set/sorted_set_operations/report/index.html">🔄 All SortedSet Operations</a></li>
+                </ul>
+            </div>
+
+            <!-- Array Benchmarks -->
+            <div class="card">
+                <h3>📊 Array Benchmarks</h3>
+                <p>Array data structure operations performance</p>
+                <ul class="benchmark-list">
+                    <li><a href="array/array_operations/report/index.html">🔄 All Array Operations</a></li>
+                </ul>
+            </div>
+
+
+            <!-- Unit Benchmarks -->
+            <div class="card">
+                <h3>🎯 Unit Performance Benchmarks</h3>
+                <p>Basic unit-level performance tests</p>
+                <ul class="benchmark-list">
+                    <li><a href="unit/report/index.html">⚙️ Basic Performance Tests</a></li>
+                </ul>
+            </div>
+
+            <!-- Memory Allocators -->
+            <div class="card">
+                <h3>💾 Memory Allocator Benchmarks</h3>
+                <p>Comparison of different memory allocation strategies</p>
+                <ul class="benchmark-list">
+                    <li><a href="allocators/system/report/index.html">🖥️ System Allocator</a></li>
+                    <li><a href="allocators/jemalloc/report/index.html">🚀 jemalloc</a></li>
+                    <li><a href="allocators/mimalloc/report/index.html">⚡ mimalloc</a></li>
+                </ul>
+            </div>
+
+            <!-- Concurrency Benchmarks -->
+            <div class="card">
+                <h3>🔄 Concurrency Benchmarks</h3>
+                <p>Multi-threaded access pattern analysis</p>
+                <ul class="benchmark-list">
+                    <li><a href="concurrency/concurrent_reads/report/index.html">📖 Concurrent Reads</a></li>
+                    <li><a href="concurrency/concurrent_writes/report/index.html">✏️ Concurrent Writes</a></li>
+                    <li><a href="concurrency/concurrent_counters/report/index.html">🔢 Atomic Counters</a></li>
+                    <li><a href="concurrency/contention/report/index.html">⚠️ High Contention</a></li>
+                    <li><a href="concurrency/transaction_patterns/report/index.html">🔄 Transaction Patterns</a></li>
+                </ul>
+            </div>
+
+            <!-- Realistic Scenarios -->
+            <div class="card">
+                <h3>🌍 Realistic Scenarios</h3>
+                <p>Real-world usage pattern simulations</p>
+                <ul class="benchmark-list">
+                    <li><a href="realistic/large_value_operations/report/index.html">📦 Large Data Operations</a></li>
+                    <li><a href="realistic/concurrent_hot_keys/report/index.html">🔥 Hot Key Access</a></li>
+                    <li><a href="realistic/session_storage/report/index.html">💼 Session Storage</a></li>
+                    <li><a href="realistic/cache_pattern/report/index.html">💾 Cache Patterns</a></li>
+                </ul>
+            </div>
+
+            <!-- Complex Scenarios -->
+            <div class="card">
+                <h3>🎭 Complex Scenarios</h3>
+                <p>Mixed workloads and complex queries performance</p>
+                <ul class="benchmark-list">
+                    <li><a href="complex_scenarios/mixed_workload/report/index.html">🔄 Mixed Workload</a></li>
+                    <li><a href="complex_scenarios/complex_queries/report/index.html">🔍 Complex Queries</a></li>
+                </ul>
+            </div>
+
+            <!-- Advanced Benchmarks -->
+            <div class="card">
+                <h3>🚀 Advanced Benchmarks</h3>
+                <p>Complex scenario-based performance tests</p>
+                <ul class="benchmark-list">
+                    <li><a href="advanced/realistic/report/index.html">🎭 Advanced Realistic</a></li>
+                    <li><a href="advanced/concurrency/report/index.html">🔄 Advanced Concurrency</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="stats">
+            <h3>📊 Benchmark Summary</h3>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number">23</div>
+                    <div class="stat-label">Total Benchmarks</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">9</div>
+                    <div class="stat-label">Benchmark Categories</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">3</div>
+                    <div class="stat-label">Memory Allocators</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">∞</div>
+                    <div class="stat-label">Performance Insights</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Add some interactivity
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.card');
+
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-5px) scale(1.02)';
+                });
+
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0) scale(1)';
+                });
+            });
+        });
+    </script>
+</body>
+</html>

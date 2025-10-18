@@ -1,0 +1,36 @@
+[workspace]
+members = [
+    "raptor",
+    "benches"
+]
+resolver = "3"
+
+[workspace.lints.clippy]
+nursery = { level = "deny", priority = -1 }
+multiple_crate_versions = "allow"
+
+[workspace.lints.rustdoc]
+all = "deny"
+
+[profile.release]
+opt-level = 3
+debug = false
+debug-assertions = false
+overflow-checks = false
+incremental = false
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev]
+opt-level = 0
+debug = true
+split-debuginfo = "packed"
+debug-assertions = true
+overflow-checks = true
+incremental = true
+codegen-units = 256
+lto = false
+panic = "unwind"
+strip = false

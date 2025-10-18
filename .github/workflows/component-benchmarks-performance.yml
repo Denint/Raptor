@@ -1,0 +1,156 @@
+---
+name: Performance Benchmarks
+
+on:
+  workflow_call:
+    inputs:
+      run_full_benchmarks:
+        description: 'Run full benchmark suite'
+        type: boolean
+        default: false
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  benchmark-unit:
+    name: Unit Performance Benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache system dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            /var/cache/apt
+            /var/lib/apt/lists
+          key: ${{ runner.os }}-apt-system-deps-${{
+            hashFiles('.github/workflows/components/benchmarks-performance.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-system-deps-
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gnuplot valgrind
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Run basic benchmarks
+        run: cargo bench --bench allocator_benchmark
+
+      - name: Store benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-benchmark-results
+          path: target/criterion/
+          retention-days: 30
+          overwrite: true
+
+  benchmark-allocators:
+    name: Memory Allocator Benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Run allocator benchmark
+        run: cargo bench --bench allocator_benchmark
+
+      - name: Store allocator results
+        uses: actions/upload-artifact@v4
+        with:
+          name: allocator-system-results
+          path: target/criterion/
+          retention-days: 30
+          overwrite: true
+
+  benchmark-advanced:
+    name: Advanced Benchmarks (${{ matrix.benchmark }})
+    runs-on: ubuntu-latest
+    if: inputs.run_full_benchmarks
+    strategy:
+      matrix:
+        benchmark: [realistic, concurrency]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache system dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            /var/cache/apt
+            /var/lib/apt/lists
+          key: ${{ runner.os }}-apt-system-deps-${{
+            hashFiles('.github/workflows/components/benchmarks-performance.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-system-deps-
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gnuplot valgrind
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Run ${{ matrix.benchmark }} benchmark
+        run: |
+          if [ "${{ matrix.benchmark }}" = "realistic" ]; then
+            cargo bench --bench cache_pattern_benchmark
+            cargo bench --bench session_storage_benchmark
+            cargo bench --bench concurrent_hot_keys_benchmark
+            cargo bench --bench large_value_operations_benchmark
+          elif [ "${{ matrix.benchmark }}" = "concurrency" ]; then
+            cargo bench --bench concurrent_reads_benchmark
+            cargo bench --bench concurrent_writes_benchmark
+            cargo bench --bench concurrent_counters_benchmark
+            cargo bench --bench contention_benchmark
+            cargo bench --bench transaction_patterns_benchmark
+          fi
+
+      - name: Store ${{ matrix.benchmark }} results
+        uses: actions/upload-artifact@v4
+        with:
+          name: advanced-${{ matrix.benchmark }}-benchmark-results
+          path: target/criterion/
+          retention-days: 30
+          overwrite: true
